@@ -9,6 +9,7 @@ import type {
   CreditPlan,
   PlanType,
 } from "../types/index.js";
+import * as Sentry from "@sentry/node";
 
 const clerkWebhooks = async (
   req: Request,
@@ -53,6 +54,15 @@ const clerkWebhooks = async (
         "svix-signature": svixSignature,
       }) as ClerkWebhookEvent;
     } catch (err) {
+      Sentry.captureException(err, {
+        tags: {
+          controller: "clerk",
+          webhook: "true",
+        },
+        extra: {
+          eventType: req.body?.type,
+        },
+      });
       console.error("❌ Webhook verification failed:", err);
       return ApiResponseUtil.unauthorized(res, "Invalid webhook signature");
     }
@@ -65,7 +75,7 @@ const clerkWebhooks = async (
     // Switch cases for Different Events
     switch (type) {
       case "user.created": {
-        await handleUserCreated(data);
+        await handleUserCreated(data, req);
         console.log(`✅ User created: ${data.id}`);
         break;
       }
@@ -93,6 +103,15 @@ const clerkWebhooks = async (
       `Webhook processed: ${type}`
     );
   } catch (error: unknown) {
+    Sentry.captureException(error, {
+      tags: {
+        controller: "clerk",
+        webhook: "true",
+      },
+      extra: {
+        eventType: req.body?.type,
+      },
+    });
     if (error instanceof Error) {
       console.error("❌ Webhook Error:", error.message);
       console.error("Stack:", error.stack);
@@ -104,7 +123,10 @@ const clerkWebhooks = async (
 };
 
 // Helper Functions
-async function handleUserCreated(data: ClerkWebhookData): Promise<void> {
+async function handleUserCreated(
+  data: ClerkWebhookData,
+  req: Request
+): Promise<void> {
   const email = data.email_addresses?.[0]?.email_address || "";
   const firstName = data.first_name || "";
   const lastName = data.last_name || "";
@@ -129,6 +151,15 @@ async function handleUserCreated(data: ClerkWebhookData): Promise<void> {
     });
     console.log(`✅ User successfully created in database`);
   } catch (error) {
+    Sentry.captureException(error, {
+      tags: {
+        controller: "clerk",
+        webhook: "true",
+      },
+      extra: {
+        eventType: req.body?.type,
+      },
+    });
     // Check if user already exists
     if (error instanceof Error && "code" in error && error.code === "P2002") {
       console.log(
@@ -166,6 +197,7 @@ async function handleUserUpdated(data: ClerkWebhookData): Promise<void> {
     });
     console.log(`✅ User successfully updated in database`);
   } catch (error) {
+    Sentry.captureException(error);
     // If user doesn't exist, create them instead
     if (error instanceof Error && "code" in error && error.code === "P2025") {
       console.log(`ℹ️ User ${data.id} not found, creating instead`);
@@ -219,6 +251,7 @@ async function handleUserDeleted(data: ClerkWebhookData): Promise<void> {
 
     console.log(`✅ User ${user.email} successfully deleted from database`);
   } catch (error) {
+    Sentry.captureException(error);
     // Handle the case where user was already deleted
     if (error instanceof Error && "code" in error && error.code === "P2025") {
       console.log(`ℹ️ User ${data.id} was already deleted from database`);

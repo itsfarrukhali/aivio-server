@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { ApiResponseUtil } from "../utils/apiResponse.js";
+import * as Sentry from "@sentry/node";
 
 export const protect = async (
   req: Request,
@@ -18,6 +19,15 @@ export const protect = async (
 
     next();
   } catch (error: unknown) {
+    Sentry.captureException(error, {
+      tags: {
+        middleware: "auth",
+      },
+      extra: {
+        path: req.path,
+        method: req.method,
+      },
+    });
     if (error instanceof Error) {
       console.error("Auth Error:", error.message);
     } else {
@@ -36,6 +46,15 @@ export const optionalAuth = async (
     req.auth();
     next();
   } catch (error: unknown) {
+    Sentry.captureException(error, {
+      tags: {
+        middleware: "auth",
+      },
+      extra: {
+        path: req.path,
+        method: req.method,
+      },
+    });
     // Optional auth - just continue regardless
     next();
   }

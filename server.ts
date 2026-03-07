@@ -1,3 +1,5 @@
+import "./configs/instrument.mjs"; // Sentry Performance Monitoring
+import * as Sentry from "@sentry/node";
 import "dotenv/config";
 import express, { type Request, type Response } from "express";
 import cors from "cors";
@@ -71,6 +73,14 @@ app.get("/api/health", (req: Request, res: Response) => {
 // API Routes
 app.use("/api/users", userRoutes);
 app.use("/api/projects", projectRoutes);
+
+// Debug Sentry route - MUST be before Sentry error handler
+app.get("/debug-sentry", function mainHandler(req, res) {
+  throw new Error("My first Sentry error!");
+});
+
+// Sentry error handler - This should come AFTER all your routes
+Sentry.setupExpressErrorHandler(app);
 
 // 404 Handler - Must be after all routes
 app.use(notFoundMiddleware);

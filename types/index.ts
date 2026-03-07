@@ -80,7 +80,8 @@ export interface UserProfileResponse {
   };
 }
 
-export interface ProjectResponse {
+// Full project response (with user relation - used for single project detail)
+export interface ProjectDetailResponse {
   id: string;
   name: string;
   userId: string;
@@ -97,7 +98,7 @@ export interface ProjectResponse {
   error: string;
   createdAt: Date;
   updatedAt: Date;
-  user: {
+  user?: {
     id: string;
     name: string;
     email: string;
@@ -105,8 +106,27 @@ export interface ProjectResponse {
   };
 }
 
+// Summary project response (used in lists/pagination)
+export interface ProjectSummaryResponse {
+  id: string;
+  name: string;
+  generatedImage: string;
+  generatedVideo: string;
+  isPublished: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Toggle publish response
+export interface TogglePublishResponse {
+  id: string;
+  name: string;
+  isPublished: boolean;
+  updatedAt: Date;
+}
+
 export interface PaginatedProjectsResponse {
-  projects: ProjectResponse[];
+  projects: ProjectSummaryResponse[];
   pagination: {
     page: number;
     limit: number;
@@ -126,6 +146,9 @@ export interface UserStatsResponse {
 export interface CreditsResponse {
   credits: number;
 }
+
+// Keep legacy alias for backward compatibility
+export type ProjectResponse = ProjectDetailResponse;
 
 // ============================================
 // CLERK WEBHOOK TYPES
